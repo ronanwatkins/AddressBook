@@ -12,6 +12,7 @@ import static javax.swing.SwingUtilities.updateComponentTreeUI;
 
 public class AddressBook extends JFrame {
 
+    private int addAddressCount = 0;
     // reference for manipulating multiple document interface
     private JDesktopPane desktop;
 
@@ -20,7 +21,7 @@ public class AddressBook extends JFrame {
 
     // references to Actions
     Action newAction, saveAction, deleteAction,
-            searchAction, exitAction, addAddressAction, addPhonesAction;
+            searchAction, exitAction, addAddressAction, addPhonesAction, addEmailAction;
 
     // set up database connection and GUI
     public AddressBook() {
@@ -60,8 +61,11 @@ public class AddressBook extends JFrame {
         exitAction = new ExitAction();
 
         addAddressAction = new AddAddressAction();
+        addAddressAction.setEnabled(false);
         addPhonesAction = new AddPhonesAction();
-       // addEmail = new addEmail();
+        addPhonesAction.setEnabled(false);
+        addEmailAction = new AddEmailAction();
+        addEmailAction.setEnabled(false);
 
         // add actions to tool bar
         toolBar.add( newAction );
@@ -72,6 +76,7 @@ public class AddressBook extends JFrame {
         toolBar.add( new JToolBar.Separator() );
         toolBar.add( addAddressAction );
         toolBar.add( addPhonesAction );
+        toolBar.add( addEmailAction );
 
         // add actions to File menu
         fileMenu.add( newAction );
@@ -139,6 +144,9 @@ public class AddressBook extends JFrame {
                     {
                         saveAction.setEnabled( true );
                         deleteAction.setEnabled( true );
+                        addAddressAction.setEnabled( true );
+                        addEmailAction.setEnabled( true );
+                        addPhonesAction.setEnabled( true );
                     }
 
                     // internal frame becomes inactive frame on desktop
@@ -147,6 +155,9 @@ public class AddressBook extends JFrame {
                     {
                         saveAction.setEnabled( false );
                         deleteAction.setEnabled( false );
+                        addAddressAction.setEnabled( false );
+                        addEmailAction.setEnabled( false );
+                        addPhonesAction.setEnabled( false );
                     }
                 }  // end InternalFrameAdapter anonymous inner class
         ); // end call to addInternalFrameListener
@@ -222,7 +233,14 @@ public class AddressBook extends JFrame {
             AddressBookEntry person =
                     currentFrame.getAddressBookEntry();
 
-            if(isValid(person.getZipcode())) {
+            boolean isEircodeValid = false;
+            isEircodeValid = isValid(person.getZipcode());
+            if(addAddressCount == 1)
+                isEircodeValid = isValid(person.getZipcode_1());
+            if(addAddressCount == 2)
+                isEircodeValid = isValid(person.getZipcode_2());
+
+            if(isEircodeValid) {
                 // insert person in address book
                 try {
 
@@ -414,6 +432,8 @@ public class AddressBook extends JFrame {
         }
 
         public void actionPerformed(ActionEvent e) {
+            addAddressCount+=1;
+
             SwingUtilities.invokeLater(new Runnable() {
                 @Override
                 public void run() {
@@ -449,10 +469,31 @@ public class AddressBook extends JFrame {
             AddressBookEntry person =
                     currentFrame.getAddressBookEntry();
 
-            currentFrame.addPhoneNumbers();
+            currentFrame.addPhone_Email("phone");
         }
     }
 
+    private class AddEmailAction extends AbstractAction {
+        public AddEmailAction() {
+            putValue( NAME, "AddEmail" );
+            putValue( SHORT_DESCRIPTION, "Add Email" );
+            putValue( LONG_DESCRIPTION,
+                    "Add another email" );
+            putValue( MNEMONIC_KEY, new Integer( 'E' ) );
+        }
+
+        public void actionPerformed(ActionEvent e) {
+            // get currently active window
+            AddressBookEntryFrame currentFrame =
+                    ( AddressBookEntryFrame ) desktop.getSelectedFrame();
+
+            // obtain AddressBookEntry from window
+            AddressBookEntry person =
+                    currentFrame.getAddressBookEntry();
+
+            currentFrame.addPhone_Email("email");
+        }
+    }
     // utility method to check the valildity of the eircode
     private boolean isValid(String input) {
         if(input.length() == 8 &&

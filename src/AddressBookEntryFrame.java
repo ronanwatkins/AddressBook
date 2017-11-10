@@ -38,7 +38,7 @@ public class AddressBookEntryFrame extends JInternalFrame {
     private int addPhoneNumbersClickCount = 0;
     private int addEmailAddressClickCount = 0;
     private int rowCount = 9;
-    private int height = 300;
+    private int height = 300, width = 300;
     private Container container;
 
     // construct GUI
@@ -69,35 +69,50 @@ public class AddressBookEntryFrame extends JInternalFrame {
         createRow( EMAIL , 1);
 
         container = getContentPane();
-        container.add( leftPanel, BorderLayout.WEST );
-        container.add( rightPanel, BorderLayout.CENTER );
-        container.add( leftPanel_2, BorderLayout.EAST );
-        container.add( rightPanel_2, BorderLayout.EAST );
 
-        setBounds( xOffset, yOffset, 300, height );
+        GridLayout layout = new GridLayout(0,4);
+        container.setLayout(layout);
+        container.add(leftPanel);
+        container.add(rightPanel);
+        container.add(leftPanel_2);
+        container.add(rightPanel_2);
+
+        setBounds( xOffset, yOffset, width, height );
         xOffset = ( xOffset + 30 ) % 300;
         yOffset = ( yOffset + 30 ) % 300;
     }
 
-    public void addPhoneNumbers() {
-        addPhoneNumbersClickCount++;
-        switch (addPhoneNumbersClickCount) {
+    public void addPhone_Email(String selector) {
+        int i=0;
+        if(selector.equalsIgnoreCase("phone")) {
+            addPhoneNumbersClickCount++;
+            i = addPhoneNumbersClickCount;
+        } else if(selector.equalsIgnoreCase("email")) {
+            addEmailAddressClickCount++;
+            i = addEmailAddressClickCount;
+        }
+
+        switch (i) {
             case 1:
-                createRow( PHONE_1 , 2);
+                if(selector.equalsIgnoreCase("phone"))
+                    createRow( PHONE_1 , 2);
+                else if(selector.equalsIgnoreCase("email"))
+                    createRow( EMAIL_1 ,2);
                 rowCount += 1;
                 leftPanel.setLayout( new GridLayout( rowCount, 1, 0, 5 ) );
                 rightPanel.setLayout( new GridLayout( rowCount, 1, 0, 5 ) );
-                height += 50;
-                setBounds(xOffset, yOffset, 300, height);
+                setBounds(xOffset, yOffset, width, height);
                 container.revalidate();
                 break;
             case 2:
-                createRow( PHONE_2 , 2);
+                if(selector.equalsIgnoreCase("phone"))
+                    createRow( PHONE_2 , 2);
+                else if(selector.equalsIgnoreCase("email"))
+                    createRow( EMAIL_2 ,2);
                 rowCount += 1;
                 leftPanel.setLayout( new GridLayout( rowCount, 1, 0, 5 ) );
                 rightPanel.setLayout( new GridLayout( rowCount, 1, 0, 5 ) );
-                height += 50;
-                setBounds(xOffset, yOffset, 300, height);
+                setBounds(xOffset, yOffset, width, height);
                 container.revalidate();
                 break;
         }
@@ -106,16 +121,16 @@ public class AddressBookEntryFrame extends JInternalFrame {
         newAddressClickCount++;
         switch (newAddressClickCount) {
             case 1:
-                createRow( ADDRESS1_1 , 2);
-                createRow( ADDRESS2_1 , 2);
-                createRow( CITY_1 , 2);
-                createRow( STATE_1 , 2);
-                createRow( EIRCODE_1 , 2);
+                createRow( ADDRESS1_1 , 1);
+                createRow( ADDRESS2_1 , 1);
+                createRow( CITY_1 , 1);
+                createRow( STATE_1 , 1);
+                createRow( EIRCODE_1 , 1);
                 rowCount += 5;
                 leftPanel.setLayout( new GridLayout( rowCount, 1, 0, 5 ) );
                 rightPanel.setLayout( new GridLayout( rowCount, 1, 0, 5 ) );
                 height += 150;
-                setBounds(xOffset, yOffset, 300, height);
+                setBounds(xOffset, yOffset, width, height);
                 container.revalidate();
                 break;
             case 2:
@@ -127,8 +142,8 @@ public class AddressBookEntryFrame extends JInternalFrame {
                 rowCount += 5;
                 leftPanel.setLayout( new GridLayout( rowCount, 1, 0, 5 ) );
                 rightPanel.setLayout( new GridLayout( rowCount, 1, 0, 5 ) );
-                height += 150;
-                setBounds(xOffset, yOffset, 300, height);
+                width += 300;
+                setBounds(xOffset, yOffset, width, height);
                 container.revalidate();
                 break;
         }
@@ -143,13 +158,37 @@ public class AddressBookEntryFrame extends JInternalFrame {
 
         setField( FIRST_NAME, person.getFirstName() );
         setField( LAST_NAME, person.getLastName() );
+
         setField( ADDRESS1, person.getAddress1() );
         setField( ADDRESS2, person.getAddress2() );
         setField( CITY, person.getCity() );
         setField( STATE, person.getState() );
         setField( EIRCODE, person.getZipcode() );
+        if(newAddressClickCount == 1) {
+            setField( ADDRESS1_1, person.getAddress1_1() );
+            setField( ADDRESS2_1, person.getAddress2_1() );
+            setField( CITY_1, person.getCity_1() );
+            setField( STATE_1, person.getState_1() );
+            setField( EIRCODE_1, person.getZipcode_1() );
+        } else if(newAddressClickCount == 2) {
+            setField( ADDRESS1_2, person.getAddress1_2() );
+            setField( ADDRESS2_2, person.getAddress2_2() );
+            setField( CITY_2, person.getCity_2() );
+            setField( STATE_2, person.getState_2() );
+            setField( EIRCODE_2, person.getZipcode_2() );
+        }
+
         setField( PHONE, person.getPhoneNumber() );
+        if(addPhoneNumbersClickCount == 1)
+            setField( PHONE_1, person.getPhoneNumber_1() );
+        else if(addPhoneNumbersClickCount == 2)
+            setField( PHONE_2, person.getPhoneNumber_2() );
+
         setField( EMAIL, person.getEmailAddress() );
+        if(addEmailAddressClickCount == 1)
+            setField( EMAIL_1, person.getEmailAddress_1() );
+        else if(addEmailAddressClickCount == 2)
+            setField( EMAIL_2, person.getEmailAddress_2() );
     }
 
     // store AddressBookEntry data from GUI and return
@@ -158,13 +197,37 @@ public class AddressBookEntryFrame extends JInternalFrame {
     {
         person.setFirstName( getField( FIRST_NAME ) );
         person.setLastName( getField( LAST_NAME ) );
+
         person.setAddress1( getField( ADDRESS1 ) );
         person.setAddress2( getField( ADDRESS2 ) );
         person.setCity( getField( CITY ) );
         person.setState( getField( STATE ) );
         person.setZipcode( getField(EIRCODE) );
+        if(newAddressClickCount == 1) {
+            person.setAddress1_1( getField( ADDRESS1_1 ) );
+            person.setAddress2_1( getField( ADDRESS2_1 ) );
+            person.setCity_1( getField( CITY_1 ) );
+            person.setState_1( getField( STATE_1 ) );
+            person.setZipcode_1( getField(EIRCODE_1) );
+        } else if(newAddressClickCount == 2) {
+            person.setAddress1_2( getField( ADDRESS1_2 ) );
+            person.setAddress2_2( getField( ADDRESS2_2 ) );
+            person.setCity_2( getField( CITY_2 ) );
+            person.setState_2( getField( STATE_2 ) );
+            person.setZipcode_2( getField(EIRCODE_2) );
+        }
+
         person.setPhoneNumber( getField( PHONE ) );
+        if(addPhoneNumbersClickCount == 1)
+            person.setPhoneNumber_1( getField( PHONE_1 ) );
+        else if(addPhoneNumbersClickCount == 2)
+            person.setPhoneNumber_2( getField( PHONE_2 ));
+
         person.setEmailAddress( getField( EMAIL ) );
+        if(addEmailAddressClickCount == 1)
+            person.setEmailAddress_1( getField( EMAIL_1 ) );
+        else if(addEmailAddressClickCount == 2)
+            person.setEmailAddress_2( getField( EMAIL_2 ) );
 
         return person;
     }

@@ -2,17 +2,39 @@
 public class AddressBookEntry {
     private String firstName = "";
     private String lastName = "";
+
     private String address1 = "";
     private String address2 = "";
     private String city = "";
     private String state = "";
     private String zipcode = "";
+
+    private String address1_1 = "";
+    private String address2_1 = "";
+    private String city_1 = "";
+    private String state_1 = "";
+    private String zipcode_1 = "";
+
+    private String address1_2 = "";
+    private String address2_2 = "";
+    private String city_2 = "";
+    private String state_2 = "";
+    private String zipcode_2 = "";
+
     private String phoneNumber = "";
     private String emailAddress = "";
+
+    private String phoneNumber_1 = "";
+    private String emailAddress_1 = "";
+
+    private String phoneNumber_2 = "";
+    private String emailAddress_2 = "";
+
     private int personID;
     private int addressID;
     private int phoneID;
     private int emailID;
+
 
     // empty constructor
     public AddressBookEntry()
@@ -109,6 +131,126 @@ public class AddressBookEntry {
         return zipcode;
     }
 
+    // set first line of person's address
+    public void setAddress1_1( String firstLine )
+    {
+        address1_1 = firstLine;
+    }
+
+    // get first line of person's address
+    public String getAddress1_1()
+    {
+        return address1_1;
+    }
+
+    // set second line of person's address
+    public void setAddress2_1( String secondLine )
+    {
+        address2_1 = secondLine;
+    }
+
+    // get second line of person's address
+    public String getAddress2_1()
+    {
+        return address2_1;
+    }
+
+    // set city in which person lives
+    public void setCity_1( String personCity )
+    {
+        city_1 = personCity;
+    }
+
+    // get city in which person lives
+    public String getCity_1()
+    {
+        return city_1;
+    }
+
+    // set state in which person lives
+    public void setState_1( String personState )
+    {
+        state_1 = personState;
+    }
+
+    // get state in which person lives
+    public String getState_1()
+    {
+        return state_1;
+    }
+
+    // set person's zip code
+    public void setZipcode_1(String zip )
+    {
+        zipcode_1 = zip;
+    }
+
+    // get person's zip code
+    public String getZipcode_1()
+    {
+        return zipcode_1;
+    }
+
+    // set first line of person's address
+    public void setAddress1_2( String firstLine )
+    {
+        address1_2 = firstLine;
+    }
+
+    // get first line of person's address
+    public String getAddress1_2()
+    {
+        return address1_2;
+    }
+
+    // set second line of person's address
+    public void setAddress2_2( String secondLine )
+    {
+        address2_2 = secondLine;
+    }
+
+    // get second line of person's address
+    public String getAddress2_2()
+    {
+        return address2_2;
+    }
+
+    // set city in which person lives
+    public void setCity_2( String personCity )
+    {
+        city_2 = personCity;
+    }
+
+    // get city in which person lives
+    public String getCity_2()
+    {
+        return city_2;
+    }
+
+    // set state in which person lives
+    public void setState_2( String personState )
+    {
+        state_2 = personState;
+    }
+
+    // get state in which person lives
+    public String getState_2()
+    {
+        return state_2;
+    }
+
+    // set person's zip code
+    public void setZipcode_2(String zip )
+    {
+        zipcode_2 = zip;
+    }
+
+    // get person's zip code
+    public String getZipcode_2()
+    {
+        return zipcode_2;
+    }
+
     // set person's phone number
     public void setPhoneNumber( String number )
     {
@@ -132,6 +274,55 @@ public class AddressBookEntry {
     {
         return emailAddress;
     }
+
+    // set person's phone number
+    public void setPhoneNumber_1( String number )
+    {
+        phoneNumber_1 = number;
+    }
+
+    // get person's phone number
+    public String getPhoneNumber_1()
+    {
+        return phoneNumber_1;
+    }
+
+    // set person's email address
+    public void setEmailAddress_1( String email )
+    {
+        emailAddress_1 = email;
+    }
+
+    // get person's email address
+    public String getEmailAddress_1()
+    {
+        return emailAddress_1;
+    }
+
+    // set person's phone number
+    public void setPhoneNumber_2( String number )
+    {
+        phoneNumber_2 = number;
+    }
+
+    // get person's phone number
+    public String getPhoneNumber_2()
+    {
+        return phoneNumber_2;
+    }
+
+    // set person's email address
+    public void setEmailAddress_2( String email )
+    {
+        emailAddress_2 = email;
+    }
+
+    // get person's email address
+    public String getEmailAddress_2()
+    {
+        return emailAddress_2;
+    }
+
 
     // get person's ID
     public int getPersonID()
