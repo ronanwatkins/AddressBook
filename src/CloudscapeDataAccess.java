@@ -1,15 +1,30 @@
 
 // Java core packages
 import java.sql.*;
+import java.util.ArrayList;
 
 public class CloudscapeDataAccess
         implements AddressBookDataAccess {
 
+    //region start
     // reference to database connection
     private Connection connection;
 
     // reference to prepared statement for locating entry
-    private PreparedStatement sqlFind;
+    private PreparedStatement sqlFindPersonID;
+    private PreparedStatement sqlSingleFindPersonID;
+    private PreparedStatement sqlFindName;
+    private PreparedStatement sqlFindAddress;
+    private PreparedStatement sqlFindPhone;
+    private PreparedStatement sqlFindEmail;
+
+    private PreparedStatement sqlFindAddressID;
+    private PreparedStatement sqlFindPhoneID;
+    private PreparedStatement sqlFindEmailID;
+
+    private PreparedStatement sqlDeleteAddressID;
+    private PreparedStatement sqlDeletePhoneUsingID;
+    private PreparedStatement sqlDeleteEmailUsingID;
 
     // reference to prepared statement for determining personID
     private PreparedStatement sqlPersonID;
@@ -32,6 +47,7 @@ public class CloudscapeDataAccess
     private PreparedStatement sqlDeletePhone;
     private PreparedStatement sqlDeleteEmail;
 
+    //endregion
     // set up PreparedStatements to access database
     public CloudscapeDataAccess() throws Exception
     {
@@ -39,17 +55,19 @@ public class CloudscapeDataAccess
         connect();
 
         // locate person
-        sqlFind = connection.prepareStatement(
-                "SELECT names.personID, firstName, lastName, " +
-                        "addressID, address1, address2, city, state, " +
-                        "zipcode, phoneID, phoneNumber, emailID, " +
-                        "emailAddress " +
-                        "FROM names, addresses, phoneNumbers, emailAddresses " +
-                        "WHERE lastName = ? AND " +
-                        "names.personID = addresses.personID AND " +
-                        "names.personID = phoneNumbers.personID AND " +
-                        "names.personID = emailAddresses.personID" );
+        sqlFindPersonID = connection.prepareStatement("SELECT personID FROM names WHERE lastName LIKE ?");
+        sqlSingleFindPersonID = connection.prepareStatement("SELECT personID FROM names WHERE firstName = ? AND lastName = ?");
+        sqlFindName = connection.prepareStatement("SELECT firstName, lastName FROM names WHERE personID = ?");
+        sqlFindAddress = connection.prepareStatement("SELECT address1, address2 ,city, state, zipcode FROM addresses" +
+                " WHERE personID = ?");
+        sqlFindEmail = connection.prepareStatement("SELECT emailAddress FROM emailaddresses WHERE personID = ?");
+        sqlFindPhone = connection.prepareStatement("SELECT phoneNumber FROM phonenumbers WHERE personID = ?");
 
+        sqlFindAddressID = connection.prepareStatement("SELECT addressID FROM addresses WHERE personID = ?");
+        sqlFindPhoneID = connection.prepareStatement("SELECT phoneID FROM phonenumbers WHERE personID = ?");
+        sqlFindEmailID = connection.prepareStatement("SELECT emailID FROM emailaddresses WHERE personID = ?");
+
+//region Shite
         // Obtain personID for last person inserted in database.
         // [This is a Cloudscape-specific database operation.]
         //sqlPersonID = connection.prepareStatement(
@@ -92,17 +110,16 @@ public class CloudscapeDataAccess
         sqlUpdateAddress = connection.prepareStatement(
                 "UPDATE addresses SET address1 = ?, address2 = ?, " +
                         "city = ?, state = ?, zipcode = ? " +
-                        "WHERE addressID = ?" );
+                        "WHERE personID = ? AND addressID = ?");
 
         // update phone number in table phoneNumbers
         sqlUpdatePhone = connection.prepareStatement(
-                "UPDATE phoneNumbers SET phoneNumber = ? " +
-                        "WHERE phoneID = ?" );
+                "UPDATE phoneNumbers SET phoneNumber = ? WHERE personID = ? AND phoneID = ? ");
 
         // update email in table emailAddresses
         sqlUpdateEmail = connection.prepareStatement(
-                "UPDATE emailAddresses SET emailAddress = ? " +
-                        "WHERE emailID = ?" );
+                "UPDATE emailAddresses SET emailAddress = ?  WHERE personID = ? AND emailID = ? ");
+
 
         // Delete row from table names. This must be executed
         // after sqlDeleteAddress, sqlDeletePhone and
@@ -121,8 +138,22 @@ public class CloudscapeDataAccess
         // delete email address from table emailAddresses
         sqlDeleteEmail = connection.prepareStatement(
                 "DELETE FROM emailAddresses WHERE personID = ?" );
+
+        // delete address from table addresses
+        sqlDeleteAddressID = connection.prepareStatement(
+                "DELETE FROM addresses WHERE personID = ? AND addressID = ?");
+
+        sqlDeleteEmailUsingID = connection.prepareStatement(
+                "DELETE FROM emailAddresses WHERE personID = ? AND emailID = ?");
+
+        // delete phone number from table phoneNumbers
+        sqlDeletePhoneUsingID = connection.prepareStatement(
+                "DELETE FROM phoneNumbers WHERE personID = ? AND phoneID = ?");
+
+//endregion
     }  // end CloudscapeDataAccess constructor
 
+    //region moreStuff
     // Obtain a connection to addressbook database. Method may
     // may throw ClassNotFoundException or SQLException. If so,
     // exception is passed via this class's constructor back to
@@ -150,112 +181,529 @@ public class CloudscapeDataAccess
 
     // Locate specified person. Method returns AddressBookEntry
     // containing information.
-    public AddressBookEntry findPerson( String lastName )
+//endregion
+    public ArrayList<AddressBookEntry> findPerson(String firstName, String lastName)
     {
         try {
             // set query parameter and execute query
-            sqlFind.setString( 1, lastName );
-            ResultSet resultSet = sqlFind.executeQuery();
+            ResultSet PersonIDset;
+            System.out.println("first name: " + firstName);
+            System.out.println("last name: " + lastName);
+            if(firstName.equals("")) {
+                System.out.println("multiple people");
+                sqlFindPersonID.setString(1, lastName);
 
-            // if no records found, return immediately
-            if ( !resultSet.next() )
-                return null;
+                PersonIDset = sqlFindPersonID.executeQuery();
+            } else {
+                System.out.println("single person");
+                sqlSingleFindPersonID.setString(1, firstName);
+                sqlSingleFindPersonID.setString(2, lastName);
 
-            // create new AddressBookEntry
-            AddressBookEntry person = new AddressBookEntry(
-                    resultSet.getInt( 1 ) );
+                PersonIDset = sqlSingleFindPersonID.executeQuery();
+            }
+            ArrayList<AddressBookEntry> result = new ArrayList<>();
+            while (PersonIDset.next()) {
+                String personID = PersonIDset.getString(1);
+                AddressBookEntry person = new AddressBookEntry(PersonIDset.getInt(1));
+                System.out.println("Person ID: " + personID);
 
-            // set AddressBookEntry properties
-            person.setFirstName( resultSet.getString( 2 ) );
-            person.setLastName( resultSet.getString( 3 ) );
+                // Get first and last name
+                sqlFindName.setString(1, personID);
+                ResultSet nameSet = sqlFindName.executeQuery();
+                if(!nameSet.next())
+                    System.out.println("No names exist for this ID");
+                System.out.println("Name: " + nameSet.getString(1) + " " + nameSet.getString(2));
+                person.setFirstName(nameSet.getString(1));
+                person.setLastName(nameSet.getString(2));
 
-            person.setAddressID( resultSet.getInt( 4 ) );
-            person.setAddress1( resultSet.getString( 5 ) );
-            person.setAddress2( resultSet.getString( 6 ) );
-            person.setCity( resultSet.getString( 7 ) );
-            person.setState( resultSet.getString( 8 ) );
-            person.setZipcode( resultSet.getString( 9 ) );
+                // Get address(s)
+                sqlFindAddress.setString(1, personID);
+                ResultSet addressSet = sqlFindAddress.executeQuery();
+                if(!addressSet.next())
+                    System.out.println("No address exist for this ID");
+                person.setAddress1(addressSet.getString(1));
+                person.setAddress2(addressSet.getString(2));
+                person.setCity(addressSet.getString(3));
+                person.setState(addressSet.getString(4));
+                person.setZipcode(addressSet.getString(5));
 
-            person.setPhoneID( resultSet.getInt( 10 ) );
-            person.setPhoneNumber( resultSet.getString( 11 ) );
+                // If they have a second address
+                if(addressSet.next()) {
+                    person.setAddressCount(1);
+                    person.setAddress1_1(addressSet.getString(1));
+                    person.setAddress2_1(addressSet.getString(2));
+                    person.setCity_1(addressSet.getString(3));
+                    person.setState_1(addressSet.getString(4));
+                    person.setZipcode_1(addressSet.getString(5));
+                }
 
-            person.setEmailID( resultSet.getInt( 12 ) );
-            person.setEmailAddress( resultSet.getString( 13 ) );
+                // If they have a third address
+                if(addressSet.next()) {
+                    person.setAddressCount(2);
+                    person.setAddress1_2(addressSet.getString(1));
+                    person.setAddress2_2(addressSet.getString(2));
+                    person.setCity_2(addressSet.getString(3));
+                    person.setState_2(addressSet.getString(4));
+                    person.setZipcode_2(addressSet.getString(5));
+                }
 
+                // Get phone number(s)
+                sqlFindPhone.setString(1, personID);
+                ResultSet phoneSet = sqlFindPhone.executeQuery();
+                if(!phoneSet.next())
+                    System.out.println("No phone numbers exist for tis entry");
+                System.out.println("Phone: " + phoneSet.getString(1));
+                person.setPhoneNumber(phoneSet.getString(1));
+
+                // If the person has a second number
+                if(phoneSet.next()) {
+                    person.setPhoneCount(1);
+                    System.out.println("Phone 2: " + phoneSet.getString(1));
+                    person.setPhoneNumber_1(phoneSet.getString(1));
+                }
+
+                // If the person has a third second number
+                if(phoneSet.next()) {
+                    person.setPhoneCount(2);
+                    System.out.println("Phone 3: " + phoneSet.getString(1));
+                    person.setPhoneNumber_2(phoneSet.getString(1));
+                }
+
+                // Get email(s)
+                sqlFindEmail.setString(1, personID);
+                ResultSet emailSet = sqlFindEmail.executeQuery();
+                if(!emailSet.next()) {
+                    System.out.println("No email addresses exist for this ID");
+                } else {
+                    System.out.println("Email: " + emailSet.getString(1));
+                    person.setEmailAddress(emailSet.getString(1));
+                }
+
+                // If the person has a second email
+                if(emailSet.next()) {
+                    person.setEmailCount(1);
+                    System.out.println("Email 2: " + emailSet.getString(1));
+                    person.setEmailAddress_1(emailSet.getString(1));
+                }
+
+                // If the person has a third email
+                if(emailSet.next()) {
+                    person.setEmailCount(2);
+                    System.out.println("Email 3: " + emailSet.getString(1));
+                    person.setEmailAddress_2(emailSet.getString(1));
+                }
+
+                result.add(person);
+            }
             // return AddressBookEntry
-            return person;
+            return result;
         }
 
         // catch SQLException
         catch ( SQLException sqlException ) {
+            sqlException.printStackTrace();
             return null;
         }
     }  // end method findPerson
 
     // Update an entry. Method returns boolean indicating
     // success or failure.
-    public boolean savePerson( AddressBookEntry person )
-            throws DataAccessException
-    {
+    public boolean savePerson(AddressBookEntry person)
+            throws DataAccessException {
         // update person in database
         try {
             int result;
-
-            // update names table
-            sqlUpdateName.setString( 1, person.getFirstName() );
-            sqlUpdateName.setString( 2, person.getLastName() );
-            sqlUpdateName.setInt( 3, person.getPersonID() );
+            //region updateName
+            sqlUpdateName.setString(1, person.getFirstName());
+            sqlUpdateName.setString(2, person.getLastName());
+            sqlUpdateName.setInt(3, person.getPersonID());
             result = sqlUpdateName.executeUpdate();
-
-            // if update fails, rollback and discontinue
-            if ( result == 0 ) {
+            if (result == 0) {
                 connection.rollback(); // rollback update
+                System.out.println("failed to update name");
                 return false;          // update unsuccessful
             }
+            //endregion
 
-            // update addresses table
-            sqlUpdateAddress.setString( 1, person.getAddress1() );
-            sqlUpdateAddress.setString( 2, person.getAddress2() );
-            sqlUpdateAddress.setString( 3, person.getCity() );
-            sqlUpdateAddress.setString( 4, person.getState() );
-            sqlUpdateAddress.setString( 5, person.getZipcode() );
-            sqlUpdateAddress.setInt( 6, person.getAddressID() );
-            result = sqlUpdateAddress.executeUpdate();
+            //region updateAddress
+            // set query parameter and execute query
+            sqlFindAddressID.setInt(1, person.getPersonID());
+            ResultSet addressIDset = sqlFindAddressID.executeQuery();
 
-            // if update fails, rollback and discontinue
-            if ( result == 0 ) {
-                connection.rollback(); // rollback update
-                return false;          // update unsuccessful
+            System.out.println("Updating addresses");
+            // if no records found, return immediately
+            if (!addressIDset.next()) {
+                System.out.println("No addresses");
+            } else {
+                int addressID = addressIDset.getInt(1);
+
+                if (person.getAddress1().equals("") && person.getAddress2().equals("")
+                        && person.getCity().equals("") && person.getZipcode().equals("")) {
+
+                    sqlDeleteAddressID.setInt(1, person.getPersonID());
+                    sqlDeleteAddressID.setInt(2, addressID);
+
+                    result = sqlDeleteAddressID.executeUpdate();
+
+                    if (result == 0) {
+                        connection.rollback(); // rollback update
+                        return false;          // update unsuccessful
+                    }
+                } else {
+                    sqlUpdateAddress.setString(1, person.getAddress1());
+                    sqlUpdateAddress.setString(2, person.getAddress2());
+                    sqlUpdateAddress.setString(3, person.getCity());
+                    sqlUpdateAddress.setString(4, person.getState());
+                    sqlUpdateAddress.setString(5, person.getZipcode());
+                    sqlUpdateAddress.setInt(6, person.getPersonID());
+                    sqlUpdateAddress.setInt(7, addressID);
+                    result = sqlUpdateAddress.executeUpdate();
+
+                    if (result == 0) {
+                        connection.rollback(); // rollback update
+                        return false;          // update unsuccessful
+                    }
+                }
+
+                if (addressIDset.next()) {
+                    addressID = addressIDset.getInt(1);
+
+                    if (person.getAddress1_1().equals("") && person.getAddress2_1().equals("")
+                            && person.getCity_1().equals("") && person.getZipcode_1().equals("")) {
+
+                        sqlDeleteAddressID.setInt(1, person.getPersonID());
+                        sqlDeleteAddressID.setInt(2, addressID);
+
+                        result = sqlDeleteAddressID.executeUpdate();
+
+                        if (result == 0) {
+                            connection.rollback(); // rollback update
+                            return false;          // update unsuccessful
+                        }
+                    } else {
+                        sqlUpdateAddress.setString(1, person.getAddress1_1());
+                        sqlUpdateAddress.setString(2, person.getAddress2_1());
+                        sqlUpdateAddress.setString(3, person.getCity_1());
+                        sqlUpdateAddress.setString(4, person.getState_1());
+                        sqlUpdateAddress.setString(5, person.getZipcode_1());
+                        sqlUpdateAddress.setInt(6, person.getPersonID());
+                        sqlUpdateAddress.setInt(7, addressID);
+
+                        result = sqlUpdateAddress.executeUpdate();
+
+                        if (result == 0) {
+                            connection.rollback(); // rollback update
+                            return false;          // update unsuccessful
+                        }
+                    }
+                }
+
+                if (addressIDset.next()) {
+                    addressID = addressIDset.getInt(1);
+
+                    if (person.getAddress1_2().equals("") && person.getAddress2_2().equals("")
+                            && person.getCity_2().equals("") && person.getZipcode_2().equals("")) {
+
+                        sqlDeleteAddressID.setInt(1, person.getPersonID());
+                        sqlDeleteAddressID.setInt(2, addressID);
+
+                        result = sqlDeleteAddressID.executeUpdate();
+
+                        if (result == 0) {
+                            connection.rollback(); // rollback update
+                            return false;          // update unsuccessful
+                        }
+
+                    } else {
+                        sqlUpdateAddress.setString(1, person.getAddress1_2());
+                        sqlUpdateAddress.setString(2, person.getAddress2_2());
+                        sqlUpdateAddress.setString(3, person.getCity_2());
+                        sqlUpdateAddress.setString(4, person.getState_2());
+                        sqlUpdateAddress.setString(5, person.getZipcode_2());
+                        sqlUpdateAddress.setInt(6, person.getPersonID());
+                        sqlUpdateAddress.setInt(7, addressID);
+
+                        result = sqlUpdateAddress.executeUpdate();
+
+                        if (result == 0) {
+                            connection.rollback(); // rollback update
+                            return false;          // update unsuccessful
+                        }
+                    }
+                }
             }
+            //endregion
 
-            // update phoneNumbers table
-            sqlUpdatePhone.setString( 1, person.getPhoneNumber() );
-            sqlUpdatePhone.setInt( 2, person.getPhoneID() );
-            result = sqlUpdatePhone.executeUpdate();
+            //region updatePhones
+            // set query parameter and execute query
+            sqlFindPhoneID.setInt(1, person.getPersonID());
+            ResultSet phoneIDset = sqlFindPhoneID.executeQuery();
+            // if no records found, return immediately
+            if (!phoneIDset.next()) {
+                System.out.println("No phone numbers");
+            } else {
+                int phoneID = phoneIDset.getInt(1);
 
-            // if update fails, rollback and discontinue
-            if ( result == 0 ) {
-                connection.rollback(); // rollback update
-                return false;          // update unsuccessful
+                if (person.getPhoneNumber().equals("")) {
+                    sqlDeletePhoneUsingID.setInt(1, person.getPersonID());
+                    sqlDeletePhoneUsingID.setInt(2, phoneID);
+                    result = sqlDeletePhoneUsingID.executeUpdate();
+
+                    if (result == 0) {
+                        connection.rollback(); // rollback update
+                        return false;          // update unsuccessful
+                    }
+                } else {
+                    sqlUpdatePhone.setString(1, person.getPhoneNumber());
+                    sqlUpdatePhone.setInt(2, person.getPersonID());
+                    sqlUpdatePhone.setInt(3, phoneID);
+                    result = sqlUpdatePhone.executeUpdate();
+
+                    if (result == 0) {
+                        connection.rollback(); // rollback update
+                        return false;          // update unsuccessful
+                    }
+                }
+
+                if (phoneIDset.next()) {
+                    phoneID = phoneIDset.getInt(1);
+
+                    if (person.getPhoneNumber_1().equals("")) {
+                        sqlDeletePhoneUsingID.setInt(1, person.getPersonID());
+                        sqlDeletePhoneUsingID.setInt(2, phoneID);
+
+                        result = sqlDeletePhoneUsingID.executeUpdate();
+
+                        if (result == 0) {
+                            connection.rollback(); // rollback update
+                            return false;          // update unsuccessful
+                        }
+
+                    } else {
+                        sqlUpdatePhone.setString(1, person.getPhoneNumber_1());
+                        sqlUpdatePhone.setInt(2, person.getPersonID());
+                        sqlUpdatePhone.setInt(3, phoneID);
+                        result = sqlUpdatePhone.executeUpdate();
+
+                        if (result == 0) {
+                            connection.rollback(); // rollback update
+                            return false;          // update unsuccessful
+                        }
+                    }
+                }
+
+                if (phoneIDset.next()) {
+                    phoneID = phoneIDset.getInt(1);
+
+                    if (person.getPhoneNumber_2().equals("")) {
+                        sqlDeletePhoneUsingID.setInt(1, person.getPersonID());
+                        sqlDeletePhoneUsingID.setInt(2, phoneID);
+                        result = sqlDeletePhoneUsingID.executeUpdate();
+
+                        if (result == 0) {
+                            connection.rollback(); // rollback update
+                            return false;          // update unsuccessful
+                        }
+
+                    } else {
+                        sqlUpdatePhone.setString(1, person.getPhoneNumber_2());
+                        sqlUpdatePhone.setInt(2, person.getPersonID());
+                        sqlUpdatePhone.setInt(3, phoneID);
+                        result = sqlUpdatePhone.executeUpdate();
+                    }
+                    if (result == 0) {
+                        connection.rollback(); // rollback update
+                        return false;          // update unsuccessful
+                    }
+                }
             }
+            //endregion
 
-            // update emailAddresses table
-            sqlUpdateEmail.setString( 1, person.getEmailAddress() );
-            sqlUpdateEmail.setInt( 2, person.getEmailID() );
-            result = sqlUpdateEmail.executeUpdate();
+            //region updateEmails
+            // set query parameter and execute query
+            sqlFindEmailID.setInt(1, person.getPersonID());
+            ResultSet emailIDset = sqlFindEmailID.executeQuery();
 
-            // if update fails, rollback and discontinue
-            if ( result == 0 ) {
-                connection.rollback(); // rollback update
-                return false;          // update unsuccessful
+            if (!emailIDset.next()) {
+                System.out.println("No emails found");
+            } else {
+                int emailID =  emailIDset.getInt(1);
+
+                if (person.getEmailAddress().equals("")) {
+                    sqlDeleteEmailUsingID.setInt(1, person.getPersonID());
+                    sqlDeleteEmailUsingID.setInt(2, emailID);
+
+                    result = sqlDeleteEmailUsingID.executeUpdate();
+
+                    if (result == 0) {
+                        connection.rollback(); // rollback update
+                        return false;          // update unsuccessful
+                    }
+                } else {
+                    sqlUpdateEmail.setString(1, person.getEmailAddress());
+                    sqlUpdateEmail.setInt(2, person.getPersonID());
+                    sqlUpdateEmail.setInt(3, emailID);
+                    result = sqlUpdateEmail.executeUpdate();
+
+                    if (result == 0) {
+                        connection.rollback(); // rollback update
+                        return false;          // update unsuccessful
+                    }
+                }
+                if (emailIDset.next()) {
+                    emailID = emailIDset.getInt(1);
+
+                    if (person.getEmailAddress_1().equals("")) {
+                        sqlDeleteEmailUsingID.setInt(1, person.getPersonID());
+                        sqlDeleteEmailUsingID.setInt(2, emailID);
+                        result = sqlDeleteEmailUsingID.executeUpdate();
+
+                        if (result == 0) {
+                            connection.rollback(); // rollback update
+                            return false;          // update unsuccessful
+                        }
+
+                    } else {
+                        sqlUpdateEmail.setString(1, person.getEmailAddress_1());
+                        sqlUpdateEmail.setInt(2, person.getPersonID());
+                        sqlUpdateEmail.setInt(3, emailID);
+                        result = sqlUpdateEmail.executeUpdate();
+
+                        if (result == 0) {
+                            connection.rollback(); // rollback update
+                            return false;          // update unsuccessful
+                        }
+                    }
+                }
+
+                if (emailIDset.next()) {
+                    emailID = emailIDset.getInt(1);
+
+                    if (person.getEmailAddress_2().equals("")) {
+                        sqlDeleteEmailUsingID.setInt(1, person.getPersonID());
+                        sqlDeleteEmailUsingID.setInt(2, emailID);
+
+                        result = sqlDeleteEmailUsingID.executeUpdate();
+
+                        if (result == 0) {
+                            connection.rollback(); // rollback update
+                            return false;          // update unsuccessful
+                        }
+
+                    } else {
+                        sqlUpdateEmail.setString(1, person.getEmailAddress_2());
+                        sqlUpdateEmail.setInt(2, person.getPersonID());
+                        sqlUpdateEmail.setInt(3, emailID);
+                        result = sqlUpdateEmail.executeUpdate();
+
+                        if (result == 0) {
+                            connection.rollback(); // rollback update
+                            return false;          // update unsuccessful
+                        }
+                    }
+                }
             }
-
             connection.commit();   // commit update
+            //endregion
+
+            //region addingAddress
+            int addressCount = person.getAddressCount();
+            if(addressCount == 1){
+                sqlInsertAddress.setInt(1, person.getPersonID());
+                sqlInsertAddress.setString(2,
+                        person.getAddress1_1());
+                sqlInsertAddress.setString(3,
+                        person.getAddress2_1());
+                sqlInsertAddress.setString(4,
+                        person.getCity_1());
+                sqlInsertAddress.setString(5,
+                        person.getState_1());
+                sqlInsertAddress.setString(6,
+                        person.getZipcode_1());
+                result = sqlInsertAddress.executeUpdate();
+
+                // if insert fails, rollback and discontinue
+                if (result == 0) {
+                    connection.rollback(); // rollback insert
+                    return false;          // insert unsuccessful
+                }
+            }
+
+            if(addressCount == 2){
+                sqlInsertAddress.setInt(1, person.getPersonID());
+                sqlInsertAddress.setString(2,
+                        person.getAddress1_2());
+                sqlInsertAddress.setString(3,
+                        person.getAddress2_2());
+                sqlInsertAddress.setString(4,
+                        person.getCity_2());
+                sqlInsertAddress.setString(5,
+                        person.getState_2());
+                sqlInsertAddress.setString(6,
+                        person.getZipcode_2());
+                result = sqlInsertAddress.executeUpdate();
+
+                // if insert fails, rollback and discontinue
+                if (result == 0) {
+                    connection.rollback();
+                    return false;
+                }
+            }
+            connection.commit();   // commit update
+            //endregion
+
+            //region addingEmails
+            int emailCount = person.getEmailCount();
+            if(emailCount != 0){
+                sqlInsertEmail.setInt(1, person.getPersonID());
+
+                if(emailCount == 1) {
+                    sqlInsertEmail.setString(2,
+                            person.getEmailAddress_1());
+                } else if(emailCount == 2) {
+                    sqlInsertEmail.setString(2,
+                            person.getEmailAddress_2());
+                }
+
+                result = sqlInsertEmail.executeUpdate();
+
+                // if insert fails, rollback and discontinue
+                if (result == 0) {
+                    connection.rollback(); // rollback insert
+                    return false;          // insert unsuccessful
+                }
+            }
+            connection.commit();   // commit update
+            //endregion
+
+            //region addingPhone
+            int phoneCount = person.getPhoneCount();
+            if(phoneCount != 0){
+                sqlInsertPhone.setInt(1, person.getPersonID());
+
+                if(phoneCount == 1) {
+                    sqlInsertPhone.setString(2,
+                            person.getEmailAddress_1());
+                } else if(phoneCount == 2) {
+                    sqlInsertPhone.setString(2,
+                            person.getEmailAddress_2());
+                }
+                result = sqlInsertPhone.executeUpdate();
+
+                // if insert fails, rollback and discontinue
+                if (result == 0) {
+                    connection.rollback(); // rollback insert
+                    return false;          // insert unsuccessful
+                }
+            }
+            connection.commit();   // commit update
+            //endregion
+
             return true;           // update successful
         }  // end try
 
         // detect problems updating database
-        catch ( SQLException sqlException ) {
+        catch (SQLException sqlException) {
 
             // rollback transaction
             try {
@@ -264,11 +712,11 @@ public class CloudscapeDataAccess
             }
 
             // handle exception rolling back transaction
-            catch ( SQLException exception ) {
-                throw new DataAccessException( exception );
+            catch (SQLException exception) {
+                throw new DataAccessException(exception);
             }
         }
-    }  // end method savePerson
+    } // end method savePerson
 
     // Insert new entry. Method returns boolean indicating
     // success or failure.
@@ -297,6 +745,7 @@ public class CloudscapeDataAccess
                 int personID =  resultPersonID.getInt( 1 );
 
                 // insert address in addresses table
+                System.out.println("Inserting first address");
                 sqlInsertAddress.setInt( 1, personID );
                 sqlInsertAddress.setString( 2,
                         person.getAddress1() );
@@ -316,7 +765,54 @@ public class CloudscapeDataAccess
                     return false;          // insert unsuccessful
                 }
 
+                // if person has added a second address
+                if(person.getAddress1_1() != "") {
+                    System.out.println("Inserting second address");
+                    // insert address in addresses table
+                    sqlInsertAddress.setInt( 1, personID );
+                    sqlInsertAddress.setString( 2,
+                            person.getAddress1_1() );
+                    sqlInsertAddress.setString( 3,
+                            person.getAddress2_1() );
+                    sqlInsertAddress.setString( 4,
+                            person.getCity_1() );
+                    sqlInsertAddress.setString( 5,
+                            person.getState_1() );
+                    sqlInsertAddress.setString( 6,
+                            person.getZipcode_1() );
+                    result = sqlInsertAddress.executeUpdate();
+
+                    // if insert fails, rollback and discontinue
+                    if ( result == 0 ) {
+                        connection.rollback(); // rollback insert
+                        return false;          // insert unsuccessful
+                    }
+                }
+                if(person.getAddress1_2() != "") {
+                    System.out.println("Inserting third address");
+                    // insert address in addresses table
+                    sqlInsertAddress.setInt( 1, personID );
+                    sqlInsertAddress.setString( 2,
+                            person.getAddress1_2() );
+                    sqlInsertAddress.setString( 3,
+                            person.getAddress2_2() );
+                    sqlInsertAddress.setString( 4,
+                            person.getCity_2() );
+                    sqlInsertAddress.setString( 5,
+                            person.getState_2() );
+                    sqlInsertAddress.setString( 6,
+                            person.getZipcode_2() );
+                    result = sqlInsertAddress.executeUpdate();
+
+                    // if insert fails, rollback and discontinue
+                    if ( result == 0 ) {
+                        connection.rollback(); // rollback insert
+                        return false;          // insert unsuccessful
+                    }
+                }
+
                 // insert phone number in phoneNumbers table
+                System.out.println("Inserting first phone");
                 sqlInsertPhone.setInt( 1, personID );
                 sqlInsertPhone.setString( 2,
                         person.getPhoneNumber() );
@@ -328,7 +824,38 @@ public class CloudscapeDataAccess
                     return false;          // insert unsuccessful
                 }
 
+                if(person.getPhoneNumber_1() != "") {
+                    // insert phone number in phoneNumbers table
+                    System.out.println("Inserting second phone");
+                    sqlInsertPhone.setInt( 1, personID );
+                    sqlInsertPhone.setString( 2,
+                            person.getPhoneNumber_1() );
+                    result = sqlInsertPhone.executeUpdate();
+
+                    // if insert fails, rollback and discontinue
+                    if ( result == 0 ) {
+                        connection.rollback(); // rollback insert
+                        return false;          // insert unsuccessful
+                    }
+                }
+
+                if(person.getPhoneNumber_2() != "") {
+                    // insert phone number in phoneNumbers table
+                    System.out.println("Inserting third phone");
+                    sqlInsertPhone.setInt( 1, personID );
+                    sqlInsertPhone.setString( 2,
+                            person.getPhoneNumber_2() );
+                    result = sqlInsertPhone.executeUpdate();
+
+                    // if insert fails, rollback and discontinue
+                    if ( result == 0 ) {
+                        connection.rollback(); // rollback insert
+                        return false;          // insert unsuccessful
+                    }
+                }
+
                 // insert email address in emailAddresses table
+                System.out.println("Inserting first email");
                 sqlInsertEmail.setInt( 1, personID );
                 sqlInsertEmail.setString( 2,
                         person.getEmailAddress() );
@@ -338,6 +865,36 @@ public class CloudscapeDataAccess
                 if ( result == 0 ) {
                     connection.rollback(); // rollback insert
                     return false;          // insert unsuccessful
+                }
+
+                if(person.getEmailAddress_1() != "") {
+                    // insert email address in emailAddresses table
+                    System.out.println("Inserting second email");
+                    sqlInsertEmail.setInt( 1, personID );
+                    sqlInsertEmail.setString( 2,
+                            person.getEmailAddress_1() );
+                    result = sqlInsertEmail.executeUpdate();
+
+                    // if insert fails, rollback and discontinue
+                    if ( result == 0 ) {
+                        connection.rollback(); // rollback insert
+                        return false;          // insert unsuccessful
+                    }
+                }
+
+                if(person.getEmailAddress_2() != "") {
+                    // insert email address in emailAddresses table
+                    System.out.println("Inserting third email");
+                    sqlInsertEmail.setInt( 1, personID );
+                    sqlInsertEmail.setString( 2,
+                            person.getEmailAddress_2() );
+                    result = sqlInsertEmail.executeUpdate();
+
+                    // if insert fails, rollback and discontinue
+                    if ( result == 0 ) {
+                        connection.rollback(); // rollback insert
+                        return false;          // insert unsuccessful
+                    }
                 }
 
                 connection.commit();   // commit insert
@@ -438,8 +995,16 @@ public class CloudscapeDataAccess
     {
         // close database connection
         try {
-            sqlFind.close();
+            sqlFindName.close();
+            sqlFindAddress.close();
+            sqlFindEmail.close();
+            sqlFindPhone.close();
+            sqlSingleFindPersonID.close();
+            sqlFindPersonID.close();
             sqlPersonID.close();
+            sqlFindAddressID.close();
+            sqlFindPersonID.close();
+            sqlFindEmailID.close();
             sqlInsertName.close();
             sqlInsertAddress.close();
             sqlInsertPhone.close();
@@ -467,20 +1032,6 @@ public class CloudscapeDataAccess
     {
         close();
     }
+
+    //endregion
 }  // end class CloudscapeDataAccess
-
-
-/**************************************************************************
- * (C) Copyright 2001 by Deitel & Associates, Inc. and Prentice Hall.     *
- * All Rights Reserved.                                                   *
- *                                                                        *
- * DISCLAIMER: The authors and publisher of this book have used their     *
- * best efforts in preparing the book. These efforts include the          *
- * development, research, and testing of the theories and programs        *
- * to determine their effectiveness. The authors and publisher make       *
- * no warranty of any kind, expressed or implied, with regard to these    *
- * programs or to the documentation contained in these books. The authors *
- * and publisher shall not be liable in any event for incidental or       *
- * consequential damages in connection with, or arising out of, the       *
- * furnishing, performance, or use of these programs.                     *
- *************************************************************************/

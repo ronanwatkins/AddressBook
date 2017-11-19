@@ -35,10 +35,31 @@ public class AddressBookEntry {
     private int phoneID;
     private int emailID;
 
+    private int addressCount;
+    private int phoneCount;
+    private int emailCount;
 
     // empty constructor
     public AddressBookEntry()
     {
+    }
+
+    public void setAddressCount( int addressCount ) { this.addressCount = addressCount; }
+
+    public void setPhoneCount( int phoneCount ) {this.phoneCount = phoneCount; }
+
+    public void setEmailCount( int emailCount ) { this.emailCount = emailCount; }
+
+    public int getAddressCount() {
+        return addressCount;
+    }
+
+    public int getEmailCount() {
+        return emailCount;
+    }
+
+    public int getPhoneCount() {
+        return phoneCount;
     }
 
     // set person's id

@@ -2,7 +2,7 @@
 // Java core packages
 import java.awt.*;
 import java.awt.event.*;
-import java.sql.*;
+import java.util.ArrayList;
 
 // Java extension packages
 import javax.swing.*;
@@ -13,6 +13,9 @@ import static javax.swing.SwingUtilities.updateComponentTreeUI;
 public class AddressBook extends JFrame {
 
     private int addAddressCount = 0;
+    private int addPhonesCount = 0;
+    private int addEmailsCount = 0;
+
     // reference for manipulating multiple document interface
     private JDesktopPane desktop;
 
@@ -21,108 +24,107 @@ public class AddressBook extends JFrame {
 
     // references to Actions
     Action newAction, saveAction, deleteAction,
-            searchAction, exitAction, addAddressAction, addPhonesAction, addEmailAction;
+            searchAction, exitAction, addAddressAction, addPhonesAction, addEmailAction, alterEntryAction;
 
     // set up database connection and GUI
     public AddressBook() {
         super( "Address Book" );
 
-        // create database connection
-        try {
-            database = new CloudscapeDataAccess();
-        }
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
 
-        // detect problems with database connection
-        catch ( Exception exception ) {
-            exception.printStackTrace();
-            System.exit( 1 );
-        }
-
-        // database connection successful, create GUI
-        JToolBar toolBar = new JToolBar();
-        JMenu fileMenu = new JMenu( "File" );
-        fileMenu.setMnemonic( 'F' );
-
-        /*try {
-            UIManager.setLookAndFeel("com.sun.java.swing.plaf.motif.MotifLookAndFeel");
-            updateComponentTreeUI(this);
-        } catch (Exception ee) {
-            ee.printStackTrace();
-        }*/
-
-        // Set up actions for common operations. Private inner
-        // classes encapsulate the processing of each action.
-        newAction = new NewAction();
-        saveAction = new SaveAction();
-        saveAction.setEnabled( false );    // disabled by default
-        deleteAction = new DeleteAction();
-        deleteAction.setEnabled( false );  // disabled by default
-        searchAction = new SearchAction();
-        exitAction = new ExitAction();
-
-        addAddressAction = new AddAddressAction();
-        addAddressAction.setEnabled(false);
-        addPhonesAction = new AddPhonesAction();
-        addPhonesAction.setEnabled(false);
-        addEmailAction = new AddEmailAction();
-        addEmailAction.setEnabled(false);
-
-        // add actions to tool bar
-        toolBar.add( newAction );
-        toolBar.add( saveAction );
-        toolBar.add( deleteAction );
-        toolBar.add( new JToolBar.Separator() );
-        toolBar.add( searchAction );
-        toolBar.add( new JToolBar.Separator() );
-        toolBar.add( addAddressAction );
-        toolBar.add( addPhonesAction );
-        toolBar.add( addEmailAction );
-
-        // add actions to File menu
-        fileMenu.add( newAction );
-        fileMenu.add( saveAction );
-        fileMenu.add( deleteAction );
-        fileMenu.addSeparator();
-        fileMenu.add( searchAction );
-        fileMenu.addSeparator();
-        fileMenu.add( exitAction );
-        //fileMenu.addSeparator();
-        //fileMenu.add( addAddressAction );
-
-        // set up menu bar
-        JMenuBar menuBar = new JMenuBar();
-        menuBar.add( fileMenu );
-        setJMenuBar( menuBar );
-
-        // set up desktop
-        desktop = new JDesktopPane();
-
-        // get the content pane to set up GUI
-        Container c = getContentPane();
-        c.add( toolBar, BorderLayout.NORTH );
-        c.add( desktop, BorderLayout.CENTER );
-
-        // register for windowClosing event in case user
-        // does not select Exit from File menu to terminate
-        // application
-        addWindowListener(
-                new WindowAdapter() {
-                    public void windowClosing( WindowEvent event )
-                    {
-                        shutDown();
-                    }
+                // create database connection
+                try {
+                    database = new CloudscapeDataAccess();
                 }
-        );
 
-        // set window size and display window
-        Toolkit toolkit = getToolkit();
-        Dimension dimension = toolkit.getScreenSize();
+                // detect problems with database connection
+                catch (Exception exception) {
+                    exception.printStackTrace();
+                    System.exit(1);
+                }
 
-        // center window on screen
-        setBounds( 100, 100, dimension.width - 200,
-                dimension.height );
+                // database connection successful, create GUI
+                JToolBar toolBar = new JToolBar();
+                JMenu fileMenu = new JMenu("File");
+                fileMenu.setMnemonic('F');
 
-        setVisible( true );
+                // Set up actions for common operations. Private inner
+                // classes encapsulate the processing of each action.
+                newAction = new NewAction();
+                saveAction = new SaveAction();
+                saveAction.setEnabled(false);    // disabled by default
+                deleteAction = new DeleteAction();
+                deleteAction.setEnabled(false);  // disabled by default
+                searchAction = new SearchAction();
+                exitAction = new ExitAction();
+
+                addAddressAction = new AddAddressAction();
+                addAddressAction.setEnabled(false);
+                addPhonesAction = new AddPhonesAction();
+                addPhonesAction.setEnabled(false);
+                addEmailAction = new AddEmailAction();
+                addEmailAction.setEnabled(false);
+                alterEntryAction = new AlterEntryAction();
+                alterEntryAction.setEnabled(true);
+
+                // add actions to tool bar
+                toolBar.add(newAction);
+                toolBar.add(saveAction);
+                toolBar.add(deleteAction);
+                toolBar.add(new JToolBar.Separator());
+                toolBar.add(searchAction);
+                toolBar.add(new JToolBar.Separator());
+                toolBar.add(addAddressAction);
+                toolBar.add(addPhonesAction);
+                toolBar.add(addEmailAction);
+                toolBar.add(alterEntryAction);
+
+                // add actions to File menu
+                fileMenu.add(newAction);
+                fileMenu.add(saveAction);
+                fileMenu.add(deleteAction);
+                fileMenu.addSeparator();
+                fileMenu.add(searchAction);
+                fileMenu.addSeparator();
+                fileMenu.add(exitAction);
+
+                // set up menu bar
+                JMenuBar menuBar = new JMenuBar();
+                menuBar.add(fileMenu);
+                setJMenuBar(menuBar);
+
+                // set up desktop
+                desktop = new JDesktopPane();
+
+                // get the content pane to set up GUI
+                Container c = getContentPane();
+                c.add(toolBar, BorderLayout.NORTH);
+                c.add(desktop, BorderLayout.CENTER);
+
+                // register for windowClosing event in case user
+                // does not select Exit from File menu to terminate
+                // application
+                addWindowListener(
+                        new WindowAdapter() {
+                            public void windowClosing(WindowEvent event) {
+                                shutDown();
+                            }
+                        }
+                );
+
+                // set window size and display window
+                Toolkit toolkit = getToolkit();
+                Dimension dimension = toolkit.getScreenSize();
+
+                // center window on screen
+                setBounds(100, 100, dimension.width - 200,
+                        dimension.height);
+
+                setVisible(true);
+            }
+        });
     }  // end AddressBook constructor
 
     // close database connection and terminate program
@@ -153,6 +155,9 @@ public class AddressBook extends JFrame {
                     public void internalFrameDeactivated(
                             InternalFrameEvent event )
                     {
+                        addAddressCount = 0;
+                        addEmailsCount = 0;
+                        addPhonesCount = 0;
                         saveAction.setEnabled( false );
                         deleteAction.setEnabled( false );
                         addAddressAction.setEnabled( false );
@@ -168,7 +173,18 @@ public class AddressBook extends JFrame {
     // method to launch program execution
     public static void main( String args[] )
     {
-        new AddressBook();
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    UIManager.setLookAndFeel("com.sun.java.swing.plaf.motif.MotifLookAndFeel");
+                    //updateComponentTreeUI(this);
+                } catch (Exception ee) {
+                    ee.printStackTrace();
+                }
+                new AddressBook();
+            }
+        });
     }
 
     // Private inner class defines action that enables
@@ -191,17 +207,22 @@ public class AddressBook extends JFrame {
         // display window in which user can input entry
         public void actionPerformed( ActionEvent e )
         {
-            // create new internal window
-            AddressBookEntryFrame entryFrame =
-                    createAddressBookEntryFrame();
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    // create new internal window
+                    AddressBookEntryFrame entryFrame =
+                            createAddressBookEntryFrame();
 
-            // set new AddressBookEntry in window
-            entryFrame.setAddressBookEntry(
-                    new AddressBookEntry() );
+                    // set new AddressBookEntry in window
+                    entryFrame.setAddressBookEntry(
+                            new AddressBookEntry());
 
-            // display window
-            desktop.add( entryFrame );
-            entryFrame.setVisible( true );
+                    // display window
+                    desktop.add(entryFrame);
+                    entryFrame.setVisible(true);
+                }
+            });
         }
 
     }  // end inner class NewAction
@@ -225,62 +246,72 @@ public class AddressBook extends JFrame {
         // save new entry or update existing entry
         public void actionPerformed( ActionEvent e )
         {
-            // get currently active window
-            AddressBookEntryFrame currentFrame =
-                    ( AddressBookEntryFrame ) desktop.getSelectedFrame();
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    // get currently active window
+                    AddressBookEntryFrame currentFrame =
+                            (AddressBookEntryFrame) desktop.getSelectedFrame();
 
-            // obtain AddressBookEntry from window
-            AddressBookEntry person =
-                    currentFrame.getAddressBookEntry();
+                    // obtain AddressBookEntry from window
+                    AddressBookEntry person =
+                            currentFrame.getAddressBookEntry();
 
-            boolean isEircodeValid = false;
-            isEircodeValid = isValid(person.getZipcode());
-            if(addAddressCount == 1)
-                isEircodeValid = isValid(person.getZipcode_1());
-            if(addAddressCount == 2)
-                isEircodeValid = isValid(person.getZipcode_2());
+                    boolean isEircodeValid = false;
+                    if (addAddressCount == 0)
+                        isEircodeValid = isValid(person.getZipcode());
+                    if (addAddressCount == 1)
+                        isEircodeValid = isValid(person.getZipcode()) && isValid(person.getZipcode_1());
+                    if (addAddressCount == 2)
+                        isEircodeValid = isValid(person.getZipcode()) && isValid(person.getZipcode_1()) && isValid(person.getZipcode_2());
 
-            if(isEircodeValid) {
-                // insert person in address book
-                try {
+                    if (isEircodeValid) {
+                        // insert person in address book
+                        try {
 
-                    // Get personID. If 0, this is a new entry;
-                    // otherwise an update must be performed.
-                    int personID = person.getPersonID();
+                            // Get personID. If 0, this is a new entry;
+                            // otherwise an update must be performed.
+                            int personID = person.getPersonID();
 
-                    // determine string for message dialogs
-                    String operation =
-                            (personID == 0) ? "Insertion" : "Update";
+                            person.setAddressCount(addAddressCount);
+                            person.setEmailCount(addEmailsCount);
+                            person.setPhoneCount(addPhonesCount);
 
-                    // insert or update entry
-                    if (personID == 0)
-                        System.out.println(database.newPerson(person));
-                    else
-                        System.out.println(database.savePerson(person));
+                            // determine string for message dialogs
+                            String operation =
+                                    (personID == 0) ? "Insertion" : "Update";
 
-                    // display success message
-                    JOptionPane.showMessageDialog(desktop,
-                            operation + " successful");
-                }  // end try
+                            boolean isSuccessful;
+                            // insert or update entry
+                            if (personID == 0)
+                                isSuccessful = database.newPerson(person);
+                            else
+                                isSuccessful = database.savePerson(person);
 
-                // detect database errors
-                catch (Exception exception) {
-                    JOptionPane.showMessageDialog(desktop, exception,
-                            "DataAccessException",
-                            JOptionPane.ERROR_MESSAGE);
-                    exception.printStackTrace();
+                            // display result message
+                            JOptionPane.showMessageDialog(desktop,
+                                    operation + (isSuccessful ? " successful" : " unsuccessful"), "",
+                                    ((isSuccessful ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE)));
+                        }  // end try
+
+                        // detect database errors
+                        catch (Exception exception) {
+                            JOptionPane.showMessageDialog(desktop, exception,
+                                    "DataAccessException",
+                                    JOptionPane.ERROR_MESSAGE);
+                            exception.printStackTrace();
+                        }
+
+                        // close current window and dispose of resources
+                        currentFrame.dispose();
+                    } else {
+                        JOptionPane.showMessageDialog(desktop, "Eircode is wrong format\nMust be 2 part code containing 7 characters\nExample: A12 B345",
+                                "Wrong format",
+                                JOptionPane.ERROR_MESSAGE);
+                    }
                 }
-
-                // close current window and dispose of resources
-                currentFrame.dispose();
-            } else {
-                JOptionPane.showMessageDialog(desktop, "Eircode is wrong format\nMust be 2 part code containing 7 characters\nExample: A12 B345",
-                        "Wrong format",
-                        JOptionPane.ERROR_MESSAGE);
-            }
-
+            });
         }  // end method actionPerformed
-
     }  // end inner class SaveAction
 
     // inner class defines action that deletes entry
@@ -299,48 +330,50 @@ public class AddressBook extends JFrame {
         }
 
         // delete entry
-        public void actionPerformed( ActionEvent e )
-        {
-            // get currently active window
-            AddressBookEntryFrame currentFrame =
-                    ( AddressBookEntryFrame ) desktop.getSelectedFrame();
+        public void actionPerformed( ActionEvent e ) {
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    // get currently active window
+                    AddressBookEntryFrame currentFrame =
+                            (AddressBookEntryFrame) desktop.getSelectedFrame();
 
-            // get AddressBookEntry from window
-            AddressBookEntry person =
-                    currentFrame.getAddressBookEntry();
+                    // get AddressBookEntry from window
+                    AddressBookEntry person =
+                            currentFrame.getAddressBookEntry();
 
-            // If personID is 0, this is new entry that has not
-            // been inserted. Therefore, delete is not necessary.
-            // Display message and return.
-            if ( person.getPersonID() == 0 ) {
-                JOptionPane.showMessageDialog( desktop,
-                        "New entries must be saved before they can be " +
-                                "deleted. \nTo cancel a new entry, simply " +
-                                "close the window containing the entry" );
-                return;
-            }
+                    // If personID is 0, this is new entry that has not
+                    // been inserted. Therefore, delete is not necessary.
+                    // Display message and return.
+                    if (person.getPersonID() == 0) {
+                        JOptionPane.showMessageDialog(desktop,
+                                "New entries must be saved before they can be " +
+                                        "deleted. \nTo cancel a new entry, simply " +
+                                        "close the window containing the entry");
+                        return;
+                    }
 
-            // delete person
-            try {
-                database.deletePerson( person );
+                    // delete person
+                    try {
+                        database.deletePerson(person);
 
-                // display message indicating success
-                JOptionPane.showMessageDialog( desktop,
-                        "Deletion successful" );
-            }
+                        // display message indicating success
+                        JOptionPane.showMessageDialog(desktop,
+                                "Deletion successful");
+                    }
 
-            // detect problems deleting person
-            catch ( DataAccessException exception ) {
-                JOptionPane.showMessageDialog( desktop, exception,
-                        "Deletion failed", JOptionPane.ERROR_MESSAGE );
-                exception.printStackTrace();
-            }
+                    // detect problems deleting person
+                    catch (DataAccessException exception) {
+                        JOptionPane.showMessageDialog(desktop, exception,
+                                "Deletion failed", JOptionPane.ERROR_MESSAGE);
+                        exception.printStackTrace();
+                    }
 
-            // close current window and dispose of resources
-            currentFrame.dispose();
-
-        }  // end method actionPerformed
-
+                    // close current window and dispose of resources
+                    currentFrame.dispose();
+                }
+            });
+        }
     }  // end inner class DeleteAction
 
     // inner class defines action that locates entry
@@ -361,41 +394,46 @@ public class AddressBook extends JFrame {
         // locate existing entry
         public void actionPerformed( ActionEvent e )
         {
-            String lastName =
-                    JOptionPane.showInputDialog( desktop,
-                            "Enter last name" );
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    String lastName =
+                            JOptionPane.showInputDialog( desktop,
+                                    "Enter last name" );
 
-            // if last name was input, search for it; otherwise,
-            // do nothing
-            if ( lastName != null ) {
+                    // if last name was input, search for it; otherwise,
+                    // do nothing
+                    if ( lastName != null ) {
 
-                // Execute search. If found, AddressBookEntry
-                // is returned containing data.
-                AddressBookEntry person = database.findPerson(
-                        lastName );
+                        // Execute search. If found, AddressBookEntry
+                        // is returned containing data.
+                        ArrayList<AddressBookEntry> people = database.findPerson( "",
+                                lastName );
 
-                if ( person != null ) {
+                        if ( people != null ) {
 
-                    // create window to display AddressBookEntry
-                    AddressBookEntryFrame entryFrame =
-                            createAddressBookEntryFrame();
+                            for (AddressBookEntry person : people) {
+                                // create window to display AddressBookEntry
+                                AddressBookEntryFrame entryFrame =
+                                        createAddressBookEntryFrame();
 
-                    // set AddressBookEntry to display
-                    entryFrame.setAddressBookEntry( person );
+                                // set AddressBookEntry to display
+                                entryFrame.setAddressBookEntry(person);
 
-                    // display window
-                    desktop.add( entryFrame );
-                    entryFrame.setVisible( true );
+                                // display window
+                                desktop.add(entryFrame);
+                                entryFrame.setVisible(true);
+                            }
+                        }
+                        else
+                            JOptionPane.showMessageDialog( desktop,
+                                    "Entry with last name \"" + lastName +
+                                            "\" not found in address book" );
+
+                    }  // end "if ( lastName == null )"
                 }
-                else
-                    JOptionPane.showMessageDialog( desktop,
-                            "Entry with last name \"" + lastName +
-                                    "\" not found in address book" );
-
-            }  // end "if ( lastName == null )"
-
+            });
         }  // end method actionPerformed
-
     }  // end inner class SearchAction
 
     // inner class defines action that closes connection to
@@ -414,7 +452,12 @@ public class AddressBook extends JFrame {
         // terminate program
         public void actionPerformed( ActionEvent e )
         {
-            shutDown();  // close database connection and terminate
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    shutDown();  // close database connection and terminate
+                }
+            });
         }
 
     }  // end inner class ExitAction
@@ -432,18 +475,16 @@ public class AddressBook extends JFrame {
         }
 
         public void actionPerformed(ActionEvent e) {
-            addAddressCount+=1;
-
             SwingUtilities.invokeLater(new Runnable() {
                 @Override
                 public void run() {
+                    addAddressCount+=1;
+                    if(addAddressCount == 2)
+                        addAddressAction.setEnabled(false);
+
                     // get currently active window
                     AddressBookEntryFrame currentFrame =
                             ( AddressBookEntryFrame ) desktop.getSelectedFrame();
-
-                    // obtain AddressBookEntry from window
-                    AddressBookEntry person =
-                            currentFrame.getAddressBookEntry();
 
                     currentFrame.addAddresses();
                 }
@@ -461,15 +502,20 @@ public class AddressBook extends JFrame {
         }
 
         public void actionPerformed(ActionEvent e) {
-            // get currently active window
-            AddressBookEntryFrame currentFrame =
-                    ( AddressBookEntryFrame ) desktop.getSelectedFrame();
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    addPhonesCount++;
+                    if(addPhonesCount == 2)
+                        addPhonesAction.setEnabled(false);
 
-            // obtain AddressBookEntry from window
-            AddressBookEntry person =
-                    currentFrame.getAddressBookEntry();
+                    // get currently active window
+                    AddressBookEntryFrame currentFrame =
+                            ( AddressBookEntryFrame ) desktop.getSelectedFrame();
 
-            currentFrame.addPhone_Email("phone");
+                    currentFrame.addPhone_Email("phone");
+                }
+            });
         }
     }
 
@@ -483,20 +529,83 @@ public class AddressBook extends JFrame {
         }
 
         public void actionPerformed(ActionEvent e) {
-            // get currently active window
-            AddressBookEntryFrame currentFrame =
-                    ( AddressBookEntryFrame ) desktop.getSelectedFrame();
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    addEmailsCount++;
+                    if(addEmailsCount == 2)
+                        addEmailAction.setEnabled(false);
 
-            // obtain AddressBookEntry from window
-            AddressBookEntry person =
-                    currentFrame.getAddressBookEntry();
+                    // get currently active window
+                    AddressBookEntryFrame currentFrame =
+                            ( AddressBookEntryFrame ) desktop.getSelectedFrame();
 
-            currentFrame.addPhone_Email("email");
+                    currentFrame.addPhone_Email("email");
+                }
+            });
         }
     }
+
+    private class AlterEntryAction extends AbstractAction {
+        public AlterEntryAction() {
+            putValue( NAME, "AlterEntry" );
+            putValue( SHORT_DESCRIPTION, "Alter Entry" );
+            putValue( LONG_DESCRIPTION,
+                    "Alter Entry" );
+            putValue( MNEMONIC_KEY, new Integer( 'L' ) );
+        }
+
+        public void actionPerformed( ActionEvent e )
+        {
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    String name =
+                            JOptionPane.showInputDialog( desktop,
+                                    "Enter full name" );
+
+                    String[] fullName;
+                    // if last name was input, search for it; otherwise,
+                    // do nothing
+                    if ( name != null ) {
+                        fullName = name.split(" ");
+                        // Execute search. If found, AddressBookEntry
+                        // is returned containing data.
+                        ArrayList<AddressBookEntry> person = new ArrayList<>();
+                        try {
+                            person = database.findPerson(fullName[0], fullName[1]);
+                        } catch (Exception ee) {
+                            JOptionPane.showMessageDialog( desktop,
+                                    "Enter the full name of the person you wish to alter" );
+                        }
+
+                        if ( person != null ) {
+                            // create window to display AddressBookEntry
+                            AddressBookEntryFrame entryFrame =
+                                    createAddressBookEntryFrame();
+
+                            // set AddressBookEntry to display
+                            entryFrame.setAddressBookEntry(person.get(0));
+
+                            // display window
+                            desktop.add(entryFrame);
+                            entryFrame.setVisible(true);
+                        }
+                        else
+                            JOptionPane.showMessageDialog( desktop,
+                                    "Entry with name \"" + fullName[0] + " " + fullName[1] +
+                                            "\" not found in address book" );
+
+                    }  // end "if ( lastName == null )"
+
+                }
+            });
+        }  // end method actionPerformed
+    }
+
     // utility method to check the valildity of the eircode
     private boolean isValid(String input) {
-        if(input.length() == 8 &&
+        if((input.length() == 0) || (input.length() == 8 &&
                 input.charAt(0) != ' ' &&
                 input.charAt(1) != ' ' &&
                 input.charAt(2) != ' ' &&
@@ -504,7 +613,7 @@ public class AddressBook extends JFrame {
                 input.charAt(4) != ' ' &&
                 input.charAt(5) != ' ' &&
                 input.charAt(6) != ' ' &&
-                input.charAt(7) != ' ')
+                input.charAt(7) != ' '))
             return true;
         else
             return false;

@@ -1,12 +1,17 @@
 
 // Java core packages
 import java.sql.*;
+import java.util.ArrayList;
 
 public interface AddressBookDataAccess {
 
     // Locate specified person by last name. Return
     // AddressBookEntry containing information.
-    public AddressBookEntry findPerson( String lastName );
+    //public AddressBookEntry findPerson( String lastName );
+
+    // Locate multiple people by last name. Return
+    // AddressBookEntry Arrayist containing information.
+    public ArrayList<AddressBookEntry> findPerson(String firstNam, String lastName );
 
     // Update information for specified person.
     // Return boolean indicating success or failure.
